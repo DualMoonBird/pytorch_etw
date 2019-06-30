@@ -820,7 +820,7 @@ class Trainer(object):
                             total=eval_frequency, leave=False, desc="train"
                         )
                         pbar.set_postfix(dict(total_it=it))
-                    if self.viz is not None:
-                        self.viz.flush()
+                    #if self.viz is not None:
+                        #self.viz.flush()
 
         return best_loss
