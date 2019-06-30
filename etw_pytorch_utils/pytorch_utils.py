@@ -667,7 +667,7 @@ class Trainer(object):
         self.eval_frequency = eval_frequency
 
         self.training_best, self.eval_best = {}, {}
-        self.viz = viz
+        self.viz = None #viz
 
     @staticmethod
     def _decode_value(v):
@@ -738,9 +738,12 @@ class Trainer(object):
         self.val_logger[epoch] = ious
         self.acc_logger[epoch] = eval_dict["acc"]
         self.loss_logger[epoch] = eval_dict["loss"]
-        if(epoch % 5 == 0):
-            torch.save(self.model, "model_check" + str(epoch) + ".model")
         np.save("/content/pointnet_train/pointnetPytorch/pointnet2/train/logfile" + str(epoch) + ".npy", ious)
+        print("Everything was saved, except for the model.")
+        if(epoch % 5 == 0):
+            torch.save(self.model, "/content/pointnet_train/pointnetPytorch/pointnet2/train/model_check" + str(epoch) + ".model")
+            print("Now even the model was saved.")
+
 
 
 
