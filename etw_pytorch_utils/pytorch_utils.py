@@ -658,6 +658,11 @@ class Trainer(object):
             bnm_scheduler,
         )
 
+        self.acc_logger = {}
+        self.iou_logger = {}
+        self.loss_logger = {}
+        self.train_log_helper = list()
+
         self.checkpoint_name, self.best_name = checkpoint_name, best_name
         self.eval_frequency = eval_frequency
 
@@ -701,11 +706,13 @@ class Trainer(object):
 
         return eval_res
 
-    def eval_epoch(self, d_loader):
+    def eval_epoch(self, d_loader, epoch = 0):
         self.model.eval()
+
 
         eval_dict = {}
         total_loss = 0.0
+        iou_counts=np.zeros(2,20)
         count = 1.0
         for i, data in tqdm.tqdm(
             enumerate(d_loader, 0), total=len(d_loader), leave=False, desc="val"
@@ -717,8 +724,25 @@ class Trainer(object):
             total_loss += loss.item()
             count += 1
             for k, v in eval_res.items():
-                if v is not None:
+                if v is not None and k!="miou":
                     eval_dict[k] = eval_dict.get(k, []) + [v]
+                if k == "miou":
+                    for i in range(len(v)):
+                        tp_count = v[i][0] # gives true positives for each class (absolute values)
+                        denom_count = v[i][1] # gives the denominator for IoU (absolute values)
+                        iou_counts[0][i] += tp_count
+                        iou_counts[1][i] += denom_count
+        ious = iou_counts[0] / iou_counts[1]
+        print("IoUs for all classes:")
+        print(ious)
+        self.val_logger[epoch] = ious
+        self.acc_logger[epoch] = eval_dict["acc"]
+        self.loss_logger[epoch] = eval_dict["loss"]
+        if(epoch % 5 == 0):
+            torch.save(self.model, "model_check" + str(epoch) + ".model")
+        np.save("/content/pointnet_train/pointnetPytorch/pointnet2/train/logfile" + str(epoch) + ".npy", ious)
+
+
 
         return total_loss / count, eval_dict
 
@@ -773,7 +797,7 @@ class Trainer(object):
                         pbar.close()
 
                         if test_loader is not None:
-                            val_loss, res = self.eval_epoch(test_loader)
+                            val_loss, res = self.eval_epoch(test_loader, epoch)
 
                             if self.viz is not None:
                                 self.viz.update("val", it, res)
